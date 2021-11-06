@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -40,6 +40,12 @@ namespace MSAL.Analyzer
                 var CreateMethod = "Create";
                 var SetBeforeAccessMethod = "SetBeforeAccess";
 
+                /*Issues
+                 Why does the logic not find the Build() invocation but does find the Create()
+                 Why does the analyzer logic loop twice?
+                 How do I get the name and location of the variable in the InvocationExpressionSyntax/MemberAccessExpressionSyntax?
+                 Why does the analyzer not detect the usage of SetBeforeAccess?
+                 */
                 compilationStartContext.RegisterSyntaxNodeAction((analysisContext) =>
                 {
                     //Get all expressions

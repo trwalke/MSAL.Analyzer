@@ -40,7 +40,9 @@ namespace MSAL.Analyzer
                 var CreateMethod = "Create";
                 var SetBeforeAccessMethod = "SetBeforeAccess";
 
-                /*Issues
+                 /*This analyzer checks for the use of ConfidentialClientApplicationBuilder.Create() reports when it sees that SetBeforeAccess is not used.
+                 This is just a POC to see if this will work.
+                 Issues
                  Why does the logic not find the Build() invocation but does find the Create()
                  Why does the analyzer logic loop twice?
                  How do I get the name and location of the variable in the InvocationExpressionSyntax/MemberAccessExpressionSyntax?
@@ -122,6 +124,7 @@ namespace MSAL.Analyzer
                 }, SyntaxKind.InvocationExpression);
             });
         }
+
 
         private static void AnalyzeSymbol(SymbolAnalysisContext context)
         {

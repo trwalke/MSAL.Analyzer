@@ -2,7 +2,7 @@
 Analyzer for MSAL.NET
 
 Analyzer logic here
-https://github.com/trwalke/MSAL.Analyzer/blob/6d4bc16b77bcd39ce30bd8199ad2d968ce0692a4/MSAL.Analyzer/MSAL.Analyzer/MSAL.Analyzer/MSALAnalyzerAnalyzer.cs#L29-L126
+https://github.com/trwalke/MSAL.Analyzer/blob/accefe4f67119fa8e84270e7617cf3b26cd1b08f/MSAL.Analyzer/MSAL.Analyzer/MSAL.Analyzer/MSALAnalyzerAnalyzer.cs#L29-L97
 
 When running analyzer, MSAL.Analyzer.Vsix must be start up project.
 

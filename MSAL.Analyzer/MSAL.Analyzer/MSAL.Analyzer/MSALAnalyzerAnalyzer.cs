@@ -28,16 +28,20 @@ namespace MSAL.Analyzer
 
         public override void Initialize(AnalysisContext context)
         {
+            /*Issues
+             How do I get the name and location of the variable in the InvocationExpressionSyntax/MemberAccessExpressionSyntax?
+             Why does the analyzer not detect the usage of SetBeforeAccess?
+             */
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
 
             context.RegisterCompilationStartAction((compilationStartContext) =>
             {
-                compilationStartContext.RegisterCodeBlockStartAction<SyntaxKind>(cb =>
+                compilationStartContext.RegisterCodeBlockStartAction<SyntaxKind>(codeBlockContext =>
                 {
                     // We only care about method bodies.
-                    if (cb.OwningSymbol.Kind != SymbolKind.Method) return;
-                    var method = (IMethodSymbol)cb.OwningSymbol;
+                    if (codeBlockContext.OwningSymbol.Kind != SymbolKind.Method) return;
+                    var method = (IMethodSymbol)codeBlockContext.OwningSymbol;
 
                     var CreateMethod = "Create";
                     var SetBeforeAccessMethod = "SetBeforeAccess";
@@ -45,12 +49,16 @@ namespace MSAL.Analyzer
                     bool setBeforeOrAfterAccessInvocationFound = false;
                     MemberAccessExpressionSyntax targetInvocation = null;
 
-                    cb.RegisterSyntaxNodeAction(ctx =>
+                    codeBlockContext.RegisterSyntaxNodeAction(syntaxNodeContext =>
                     {
-                        var BuilderType = compilationStartContext.Compilation.GetTypeByMetadataName("Microsoft.Identity.Client.ConfidentialClientApplicationBuilder");
-                        var TokenCacheType = compilationStartContext.Compilation.GetTypeByMetadataName("Microsoft.Identity.Client.ITokenCache");
+                        var BuilderType = compilationStartContext?.Compilation?.GetTypeByMetadataName("Microsoft.Identity.Client.ConfidentialClientApplicationBuilder");
+                        var TokenCacheType = compilationStartContext?.Compilation?.GetTypeByMetadataName("Microsoft.Identity.Client.ITokenCache");
 
-                        var node = ctx.Node as InvocationExpressionSyntax;
+                        //var declaration = syntaxNodeContext.Node as VariableDeclaratorSyntax;
+
+                        //var x = declaration.DescendantNodes().Where(childNode => (childNode as MemberAccessExpressionSyntax).Name?.Identifier.ValueText == CreateMethod);
+
+                        var node = syntaxNodeContext.Node as InvocationExpressionSyntax;
                         if (node == null)
                         {
                             return;
@@ -63,7 +71,14 @@ namespace MSAL.Analyzer
                             return;
                         }
 
-                        var typeInfo = ctx.SemanticModel.GetTypeInfo(expression).Type as INamedTypeSymbol;
+                        var nameSyntax = expression.Expression as IdentifierNameSyntax;
+
+                        if (nameSyntax == null)
+                        {
+                            return;
+                        }
+
+                        var typeInfo = codeBlockContext?.SemanticModel?.GetTypeInfo(nameSyntax).Type as INamedTypeSymbol;
 
                         if (typeInfo?.ConstructedFrom == null)
                         {
@@ -77,121 +92,121 @@ namespace MSAL.Analyzer
                             targetInvocation = expression;
                         }
 
-                        if (typeInfo.ConstructedFrom.Equals(TokenCacheType) && SetBeforeAccessMethod.Equals(methodName))
+                        if (/*typeInfo.ConstructedFrom.Equals(TokenCacheType) &&*/ SetBeforeAccessMethod.Equals(methodName))
                         {
                             setBeforeOrAfterAccessInvocationFound = true;
                         }
 
-
                     }, SyntaxKind.InvocationExpression);
 
-                    cb.RegisterCodeBlockEndAction(ctx =>
+                    codeBlockContext.RegisterCodeBlockEndAction(ctx =>
                     {
                         if (CreateMethodInvocationFound && !setBeforeOrAfterAccessInvocationFound)
                         {
                             ctx.ReportDiagnostic(Diagnostic.Create(Rule, targetInvocation.GetLocation()));
                         }
+
+                        CreateMethodInvocationFound = false;
+                        setBeforeOrAfterAccessInvocationFound = false;
                     });
                 });
             });
         }
 
-        //public /*override*/ void Initialize(AnalysisContext context)
-        //{
-        //    context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        //    context.EnableConcurrentExecution();
+        public /*override*/ void Initialize2(AnalysisContext context)
+        {
+            context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+            context.EnableConcurrentExecution();
 
-        //    context.RegisterCompilationStartAction((compilationStartContext) =>
-        //    {
-        //        //Define the names of the classes we are analyzing
-        //        var BuilderType = compilationStartContext.Compilation.GetTypeByMetadataName("Microsoft.Identity.Client.ConfidentialClientApplicationBuilder");
-        //        var TokenCacheType = compilationStartContext.Compilation.GetTypeByMetadataName("Microsoft.Identity.Client.ITokenCache");
+            context.RegisterCompilationStartAction((compilationStartContext) =>
+            {
+                //Define the names of the classes we are analyzing
+                var BuilderType = compilationStartContext.Compilation.GetTypeByMetadataName("Microsoft.Identity.Client.ConfidentialClientApplicationBuilder");
+                var TokenCacheType = compilationStartContext.Compilation.GetTypeByMetadataName("Microsoft.Identity.Client.ITokenCache");
 
-        //        var CreateMethod = "Create";
-        //        var SetBeforeAccessMethod = "SetBeforeAccess";
+                var CreateMethod = "Create";
+                var SetBeforeAccessMethod = "SetBeforeAccess";
 
-        //        /*Issues
-        //         Why does the logic not find the Build() invocation but does find the Create()
-        //         Why does the analyzer logic loop twice?
-        //         How do I get the name and location of the variable in the InvocationExpressionSyntax/MemberAccessExpressionSyntax?
-        //         Why does the analyzer not detect the usage of SetBeforeAccess?
-        //         */
-        //        compilationStartContext.RegisterSyntaxNodeAction((analysisContext) =>
-        //        {
-        //            //Get all expressions
-        //            var invocations =
-        //                analysisContext.Node.DescendantNodes().OfType<InvocationExpressionSyntax>();
-        //            var hasValueCalled = new HashSet<string>();
-        //            string clientAppName = string.Empty;
-        //            string tokenCacheName = string.Empty;
-        //            MemberAccessExpressionSyntax targetInvocation = null;
+                /*Issues
+                 How do I get the name and location of the variable in the InvocationExpressionSyntax/MemberAccessExpressionSyntax?
+                 Why does the analyzer not detect the usage of SetBeforeAccess?
+                 */
+                compilationStartContext.RegisterSyntaxNodeAction((analysisContext) =>
+                {
+                    //Get all expressions
+                    var invocations =
+                        analysisContext.Node.DescendantNodes().OfType<InvocationExpressionSyntax>();
+                    var hasValueCalled = new HashSet<string>();
+                    string clientAppName = string.Empty;
+                    string tokenCacheName = string.Empty;
+                    MemberAccessExpressionSyntax targetInvocation = null;
 
-        //            foreach (var expression in invocations)
-        //            {
-        //                var invocation = expression.Expression as MemberAccessExpressionSyntax;
-        //                var e = invocation.Expression as IdentifierNameSyntax;
+                    foreach (var expression in invocations)
+                    {
+                        var invocation = expression.Expression as MemberAccessExpressionSyntax;
+                        var e = invocation.Expression as IdentifierNameSyntax;
 
-        //                if (e == null)
-        //                    continue;
+                        if (e == null)
+                            continue;
 
-        //                //Get type info
-        //                var typeInfo = analysisContext.SemanticModel.GetTypeInfo(e).Type as INamedTypeSymbol;
+                        //Get type info
+                        var typeInfo = analysisContext.SemanticModel.GetTypeInfo(e).Type as INamedTypeSymbol;
 
-        //                if (typeInfo?.ConstructedFrom == null)
-        //                    continue;
+                        if (typeInfo?.ConstructedFrom == null)
+                            continue;
 
-        //                //NOTE: Inorder to run this with the unit test, the check for the BuilderType and TokenCacheType has to be disabled. for some reason, the test cannot construct these during unit testing. 
-        //                //The rest of the logic will work as expected however.
-        //                //Verify that we are looking at the right type BuilderType
-        //                if (typeInfo.ConstructedFrom.Equals(BuilderType) && !hasValueCalled.Contains(CreateMethod))
-        //                {
-        //                    //clientAppName = e.Identifier.Text;
+                        //NOTE: Inorder to run this with the unit test, the check for the BuilderType and TokenCacheType has to be disabled. for some reason, the test cannot construct these during unit testing. 
+                        //The rest of the logic will work as expected however.
+                        //Verify that we are looking at the right type BuilderType
+                        if (typeInfo.ConstructedFrom.Equals(BuilderType) && !hasValueCalled.Contains(CreateMethod))
+                        {
+                            //clientAppName = e.Identifier.Text;
 
 
-        //                    //if(invocation.Parent.GetText().ToString() == "Build")
-        //                    //Checking for Build() does not work. There is probably an issue when searching through the
-        //                    //builder pattern. Create seems to work though.
+                            //if(invocation.Parent.GetText().ToString() == "Build")
+                            //Checking for Build() does not work. There is probably an issue when searching through the
+                            //builder pattern. Create seems to work though.
 
-        //                    //Verify that the create method is called
-        //                    if (invocation.Name.ToString().Contains(CreateMethod))
-        //                    {
-        //                        //analysisContext.ReportDiagnostic(Diagnostic.Create(Rule, e.GetLocation()));
+                            //Verify that the create method is called
+                            if (invocation.Name.ToString().Contains(CreateMethod))
+                            {
+                                //analysisContext.ReportDiagnostic(Diagnostic.Create(Rule, e.GetLocation()));
 
-        //                        targetInvocation = invocation;
-        //                        //We have now identified that the Create method was used. Storing in hashSet
-        //                        hasValueCalled.Add(CreateMethod);
-        //                        continue;
-        //                    }
-        //                }
+                                targetInvocation = invocation;
+                                //We have now identified that the Create method was used. Storing in hashSet
+                                hasValueCalled.Add(CreateMethod);
+                                continue;
+                            }
+                        }
 
-        //                //checking for TokenCacheType
-        //                if (typeInfo.ConstructedFrom.Equals(TokenCacheType))
-        //                {
-        //                    //Checking to see if SetBeforeAccess was called
-        //                    if (invocation.Name.ToString() == SetBeforeAccessMethod)
-        //                    {
-        //                        hasValueCalled.Add(SetBeforeAccessMethod);
-        //                        break;
-        //                    }
+                        //checking for TokenCacheType
+                        if (typeInfo.ConstructedFrom.Equals(TokenCacheType))
+                        {
+                            //Checking to see if SetBeforeAccess was called
+                            if (invocation.Name.ToString() == SetBeforeAccessMethod)
+                            {
+                                hasValueCalled.Add(SetBeforeAccessMethod);
+                                break;
+                            }
 
-        //                    continue;
-        //                }
+                            continue;
+                        }
 
-        //                continue;
-        //            }
+                        continue;
+                    }
 
-        //            //Check to see if app is created without token cache being set up.
-        //            if (hasValueCalled.Contains(CreateMethod) && !hasValueCalled.Contains(SetBeforeAccessMethod))
-        //            {
-        //                if (targetInvocation != null)
-        //                {
-        //                    analysisContext.ReportDiagnostic(Diagnostic.Create(Rule, targetInvocation.GetLocation()));
-        //                }
-        //            }
+                    //Check to see if app is created without token cache being set up.
+                    if (hasValueCalled.Contains(CreateMethod) && !hasValueCalled.Contains(SetBeforeAccessMethod))
+                    {
+                        if (targetInvocation != null)
+                        {
+                            analysisContext.ReportDiagnostic(Diagnostic.Create(Rule, targetInvocation.GetLocation()));
+                        }
+                    }
 
-        //        }, SyntaxKind.InvocationExpression);
-        //    });
-        //}
+                }, SyntaxKind.InvocationExpression);
+            });
+        }
 
 
         private static void AnalyzeSymbol(SymbolAnalysisContext context)

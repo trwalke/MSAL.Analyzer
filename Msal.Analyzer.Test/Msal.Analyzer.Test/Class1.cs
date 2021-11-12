@@ -13,7 +13,7 @@ namespace Msal.Analyzer.Test
         {
             IConfidentialClientApplication app = ConfidentialClientApplicationBuilder.Create(Guid.NewGuid().ToString()).WithClientSecret("someSecret").Build();
             _ = app.GetAuthorizationRequestUrl(new[] { "" }).ExecuteAsync().Result;
-            //app.UserTokenCache.SetAfterAccess(null);
+            //app.UserTokenCache.SetBeforeAccess(null);
         }
     }
 }

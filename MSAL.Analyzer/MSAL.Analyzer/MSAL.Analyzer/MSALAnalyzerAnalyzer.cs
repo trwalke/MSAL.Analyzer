@@ -30,7 +30,6 @@ namespace MSAL.Analyzer
         {
             /*Issues
              How do I get the name and location of the variable in the InvocationExpressionSyntax/MemberAccessExpressionSyntax?
-             Why does the analyzer not detect the usage of SetBeforeAccess?
              */
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
